@@ -49,27 +49,30 @@ def add_watermark(original_img_url, watermark_img_url, opacity=1.0, text=None, t
         font_file = "Mayberry_W02_Extrabold.ttf"
         font = ImageFont.truetype(font_file, size=font_size)
 
-        text_width, text_height = draw.textsize(text, font=font)
-        position = (10, combined_img.height - text_height - 10)
+        if text:  # Check if text is not None
+            text_width, text_height = draw.textsize(text, font=font)
+            position = (10, combined_img.height - text_height - 10)
 
-        # Draw the outline
-        temp_img = Image.new('RGBA', combined_img.size, (0, 0, 0, 0))
-        temp_draw = ImageDraw.Draw(temp_img)
+            # Draw the outline
+            temp_img = Image.new('RGBA', combined_img.size, (0, 0, 0, 0))
+            temp_draw = ImageDraw.Draw(temp_img)
 
-        for x in range(-blur_radius, blur_radius + 1):
-            for y in range(-blur_radius, blur_radius + 1):
-                temp_draw.text((position[0] + x, position[1] + y), text, font=font, fill=outline_color)
+            for x in range(-blur_radius, blur_radius + 1):
+                for y in range(-blur_radius, blur_radius + 1):
+                    if text:  # Check if text is not None
+                        temp_draw.text((position[0] + x, position[1] + y), text, font=font, fill=outline_color)
 
-        if outline_opacity < 1.0:
-            temp_alpha = temp_img.split()[3]
-            temp_alpha = ImageEnhance.Brightness(temp_alpha).enhance(outline_opacity)
-            temp_img.putalpha(temp_alpha)
+            if outline_opacity < 1.0:
+                temp_alpha = temp_img.split()[3]
+                temp_alpha = ImageEnhance.Brightness(temp_alpha).enhance(outline_opacity)
+                temp_img.putalpha(temp_alpha)
 
-        temp_img = temp_img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-        combined_img.alpha_composite(temp_img)
+            temp_img = temp_img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+            combined_img.alpha_composite(temp_img)
 
-        # Draw the text
-        draw.text(position, text, font=font, fill=text_color)
+            # Draw the text
+            if text:  # Check if text is not None
+                draw.text(position, text, font=font, fill=text_color)
 
     png_image = combined_img.convert("RGBA") 
 
@@ -90,7 +93,7 @@ def get_image_url():
     }
 
     response = requests.get(ROBLOX_API_URL, params=params)
-    data = response.json()["data"]
+    data = response.json().get('data', [])
 
     images = {}
     for asset_data in data:
@@ -107,6 +110,9 @@ def get_image_url():
         opacity = float(request.args.get("opacity", 1.0))
         watermarked_img = add_watermark(original_img_url, watermark_img_url, opacity, text=asset_name)
         images[asset_id] = watermarked_img
+
+    if not images:
+        return "No asset data found in API response", 404
 
     gridsize = int(request.args.get("gridsize", 2))
 
