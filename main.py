@@ -1,8 +1,14 @@
 from flask import Flask, jsonify, request, send_file
 import time
 import requests
-from PIL import Image, ImageEnhance, ImageDraw, ImageFont, ImageColor, ImageFilter
 from io import BytesIO
+
+try:
+    from PIL import Image, ImageEnhance, ImageDraw, ImageFont, ImageColor, ImageFilter
+except ImportError:
+    import subprocess
+    subprocess.check_call(["python", "-m", "pip", "install", "Pillow"])
+    from PIL import Image, ImageEnhance, ImageDraw, ImageFont, ImageColor, ImageFilter
 
 app = Flask(__name__)
 
@@ -91,13 +97,13 @@ def get_image_url():
         asset_id = str(asset_data["targetId"])
         original_img_url = asset_data["imageUrl"]
         watermark_img_url = "https://replicate.delivery/pbxt/Kg49TFp87m1YtQLdSYzOmGvQcHUtC31m4MYawczHZ6bggFJJ/download%20(1).jpg"
-        
+
         while True:
             asset_name = get_asset_name(asset_id)
             if asset_name != "Name Not Found":
                 break
             time.sleep(1)
-        
+
         opacity = float(request.args.get("opacity", 1.0))
         watermarked_img = add_watermark(original_img_url, watermark_img_url, opacity, text=asset_name)
         images[asset_id] = watermarked_img
